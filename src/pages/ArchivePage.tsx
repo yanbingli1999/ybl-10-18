@@ -202,15 +202,23 @@ export default function ArchivePage() {
                         {r.companionItemName && (
                           <div className="p-2 rounded-lg bg-white/60 md:col-span-2">
                             <div className="text-gray-500 mb-1">📦 陪诊物品</div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-clinic-deep">{r.companionItemName}</span>
-                              <span className={`tag text-[10px] ${
-                                r.itemTrusted
-                                  ? "bg-clinic-jade/15 text-clinic-jade border-clinic-jade/30"
-                                  : "bg-gray-100 text-gray-500 border-gray-200"
-                              }`}>
-                                {r.itemTrusted ? "已采信" : "未采信"}
-                              </span>
+                              {r.itemTrusted === true && (
+                                <span className="tag text-[10px] bg-clinic-jade/15 text-clinic-jade border-clinic-jade/30">
+                                  已采信
+                                </span>
+                              )}
+                              {r.itemTrusted === false && (
+                                <span className="tag text-[10px] bg-rose-100 text-rose-700 border-rose-200">
+                                  未采信
+                                </span>
+                              )}
+                              {r.itemTrusted === null && (
+                                <span className="tag text-[10px] bg-gray-100 text-gray-500 border-gray-200">
+                                  未选择
+                                </span>
+                              )}
                               {r.itemCorrect !== undefined && (
                                 <span className={`tag text-[10px] ${
                                   r.itemCorrect

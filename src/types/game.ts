@@ -131,7 +131,7 @@ export interface MedicalRecord {
   evolved: boolean;
   notes: string;
   companionItemName?: string;
-  itemTrusted?: boolean;
+  itemTrusted?: boolean | null;
   itemCorrect?: boolean;
 }
 

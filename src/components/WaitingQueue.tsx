@@ -63,8 +63,9 @@ export function WaitingQueue() {
                       <span className="opacity-70">⭐{"★".repeat(breed?.rarity || 1)}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span>💊</span>
-                      <span className="font-medium text-clinic-crisis">{DISEASE_NAMES[beast.disease]}</span>
+                      <span>🔍</span>
+                      <span className="font-medium text-clinic-deep">待诊断</span>
+                      <span className="text-[10px] text-gray-400">· 点击查看症状</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <User className="w-3 h-3" />

@@ -525,7 +525,7 @@ export const useGameStore = create<GameState>()(
             evolved,
             notes: evolved ? `${notes} 灵兽发生了进化！` : notes,
             companionItemName: companionItem?.name,
-            itemTrusted: itemTrusted ?? undefined,
+            itemTrusted: companionItem ? itemTrusted : undefined,
             itemCorrect,
           };
 
@@ -582,7 +582,7 @@ export const useGameStore = create<GameState>()(
             evolved: false,
             notes,
             companionItemName: companionItem?.name,
-            itemTrusted: itemTrusted ?? undefined,
+            itemTrusted: companionItem ? itemTrusted : undefined,
             itemCorrect,
           };
 
