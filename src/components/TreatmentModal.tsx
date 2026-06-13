@@ -33,6 +33,7 @@ export function TreatmentModal({ open, onClose, targetBed }: TreatmentModalProps
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [playerDiagnosis, setPlayerDiagnosis] = useState<DiseaseType | null>(null);
   const [showAllDiseases, setShowAllDiseases] = useState(false);
+  const [itemTrusted, setItemTrusted] = useState<boolean | null>(null);
 
   const beast = useMemo(() => queue.find(b => b.id === selectedBeastId), [queue, selectedBeastId]);
   const breed = beast ? BREEDS.find(b => b.id === beast.breedId) : null;
@@ -56,6 +57,7 @@ export function TreatmentModal({ open, onClose, targetBed }: TreatmentModalProps
       setSelectedStaff(null);
       setPlayerDiagnosis(null);
       setShowAllDiseases(false);
+      setItemTrusted(null);
     }
   }, [open, selectedBeastId]);
 
@@ -89,7 +91,7 @@ export function TreatmentModal({ open, onClose, targetBed }: TreatmentModalProps
 
   const handleSubmit = () => {
     if (!canSubmit || !targetBed) return;
-    assignBedAndTreat(beast.id, targetBed.id, selectedStaff, selectedHerbs, playerDiagnosis);
+    assignBedAndTreat(beast.id, targetBed.id, selectedStaff, selectedHerbs, playerDiagnosis, itemTrusted);
     onClose();
   };
 
@@ -208,6 +210,76 @@ export function TreatmentModal({ open, onClose, targetBed }: TreatmentModalProps
               </button>
             </div>
           </div>
+
+          {/* 陪诊物品 */}
+          {beast.companionItem && (
+            <div className="card p-3 border-clinic-amber/30 bg-gradient-to-br from-amber-50/50 to-white">
+              <div className="font-display text-sm text-clinic-deep flex items-center gap-1.5 mb-2">
+                <span className="text-lg">{beast.companionItem.emoji}</span>
+                陪诊物品 — {beast.companionItem.name}
+              </div>
+              <p className="text-[11px] text-gray-600 mb-2 italic">
+                "{beast.companionItem.description}"
+              </p>
+              <div className="p-2 rounded-lg bg-white/60 border border-clinic-border/40 mb-3">
+                <p className="text-xs text-clinic-deep">
+                  {beast.companionItem.ownerNote}
+                </p>
+              </div>
+
+              {beast.companionItem.hintDisease && (
+                <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 mb-3">
+                  <div className="text-[11px] text-amber-700 font-medium flex items-center gap-1">
+                    <span>💡</span>
+                    主人认为可能是：
+                    <span className="font-bold">{DISEASE_NAMES[beast.companionItem.hintDisease]}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[11px] text-gray-500 mb-2">
+                是否采信主人带来的这件物品？
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  onClick={() => setItemTrusted(true)}
+                  disabled={!targetBed}
+                  className={`py-2 rounded-lg border text-xs font-medium transition-all disabled:opacity-50 ${
+                    itemTrusted === true
+                      ? "bg-clinic-jade/20 border-clinic-jade text-clinic-deep shadow-sm"
+                      : "bg-white border-clinic-border/50 text-gray-600 hover:border-clinic-jade/50 hover:bg-jade-50"
+                  }`}
+                >
+                  ✅ 采信
+                </button>
+                <button
+                  onClick={() => setItemTrusted(false)}
+                  disabled={!targetBed}
+                  className={`py-2 rounded-lg border text-xs font-medium transition-all disabled:opacity-50 ${
+                    itemTrusted === false
+                      ? "bg-clinic-crisis/15 border-clinic-crisis text-clinic-crisis shadow-sm"
+                      : "bg-white border-clinic-border/50 text-gray-600 hover:border-clinic-crisis/40 hover:bg-red-50"
+                  }`}
+                >
+                  ❌ 不采信
+                </button>
+                <button
+                  onClick={() => setItemTrusted(null)}
+                  disabled={!targetBed}
+                  className={`py-2 rounded-lg border text-xs font-medium transition-all disabled:opacity-50 ${
+                    itemTrusted === null
+                      ? "bg-gray-100 border-gray-300 text-gray-700 shadow-sm"
+                      : "bg-white border-clinic-border/50 text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  🤔 暂不选
+                </button>
+              </div>
+              <div className="mt-2 text-[10px] text-gray-400">
+                提示：采信正确可提升满意度和治疗效果，采信错误则会带来负面影响。
+              </div>
+            </div>
+          )}
 
           {/* 标准药方快速参考 */}
           <div className="card p-3 border-clinic-amber/20">
@@ -368,6 +440,21 @@ export function TreatmentModal({ open, onClose, targetBed }: TreatmentModalProps
               </>
             )}
           </div>
+          {beast.companionItem && (
+            <div className="flex items-center gap-1.5 text-[11px] mb-2 pb-2 border-b border-clinic-border/30">
+              <span>{beast.companionItem.emoji}</span>
+              <span className="text-gray-500">{beast.companionItem.name}：</span>
+              {itemTrusted === null && (
+                <span className="text-gray-400">未选择是否采信</span>
+              )}
+              {itemTrusted === true && (
+                <span className="text-clinic-jade font-medium">✅ 已采信</span>
+              )}
+              {itemTrusted === false && (
+                <span className="text-clinic-crisis font-medium">❌ 不采信</span>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}

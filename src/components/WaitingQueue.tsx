@@ -70,6 +70,12 @@ export function WaitingQueue() {
                       <User className="w-3 h-3" />
                       <span className="truncate">{beast.ownerName}</span>
                     </div>
+                    {beast.companionItem && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span>{beast.companionItem.emoji}</span>
+                        <span className="text-[11px] text-clinic-amber font-medium">主人带了{beast.companionItem.name}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button

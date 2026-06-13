@@ -65,6 +65,8 @@ export interface Beast {
   satisfaction: number;
   ownerName: string;
   arrivedAt: number;
+  companionItem: CompanionItem | null;
+  itemTrusted: boolean | null;
 }
 
 export interface Staff {
@@ -98,6 +100,8 @@ export interface Bed {
     severity: Severity;
     satisfaction: number;
     symptoms: string[];
+    companionItem: CompanionItem | null;
+    itemTrusted: boolean | null;
   } | null;
 }
 
@@ -126,6 +130,9 @@ export interface MedicalRecord {
   daysToHeal: number;
   evolved: boolean;
   notes: string;
+  companionItemName?: string;
+  itemTrusted?: boolean;
+  itemCorrect?: boolean;
 }
 
 export interface Transaction {
@@ -144,6 +151,23 @@ export interface BeastRelationship {
   visits: number;
   evolved: boolean;
   highestStage: number;
+}
+
+export type CompanionItemType = "old_toy" | "food_bowl" | "amulet" | "strange_potion";
+
+export type CompanionItemEffect = "clue_true" | "clue_false" | "buff_success" | "buff_speed" | "debuff" | "neutral";
+
+export interface CompanionItem {
+  id: string;
+  type: CompanionItemType;
+  name: string;
+  emoji: string;
+  description: string;
+  effect: CompanionItemEffect;
+  hintDisease?: DiseaseType;
+  successBonus?: number;
+  speedBonus?: number;
+  ownerNote: string;
 }
 
 export interface Notification {

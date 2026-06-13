@@ -13,6 +13,8 @@ import type {
   WeatherType,
   Prescription,
   TreatmentResult,
+  CompanionItem,
+  CompanionItemType,
 } from "@/types/game";
 import {
   BREEDS,
@@ -26,6 +28,9 @@ import {
   NOTES_SUCCESS,
   NOTES_FAIL,
   DISEASE_NAMES,
+  COMPANION_ITEM_BASE,
+  COMPANION_ITEM_NOTES,
+  ITEM_CLUE_TRUE_DISEASES,
 } from "@/data/gameData";
 
 const DISEASE_TYPES: DiseaseType[] = [
@@ -54,6 +59,69 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function generateCompanionItem(disease: DiseaseType): CompanionItem | null {
+  if (Math.random() > 0.6) return null;
+
+  const types: CompanionItemType[] = ["old_toy", "food_bowl", "amulet", "strange_potion"];
+  const type = rand(types);
+  const base = COMPANION_ITEM_BASE[type];
+  const notes = COMPANION_ITEM_NOTES[type];
+
+  let effect: CompanionItem["effect"] = "neutral";
+  let hintDisease: DiseaseType | undefined;
+  let successBonus: number | undefined;
+  let speedBonus: number | undefined;
+
+  const roll = Math.random();
+
+  if (type === "old_toy" || type === "food_bowl") {
+    if (roll < 0.5) {
+      effect = "clue_true";
+      hintDisease = disease;
+    } else {
+      effect = "clue_false";
+      const otherDiseases = ITEM_CLUE_TRUE_DISEASES.filter(d => d !== disease);
+      hintDisease = rand(otherDiseases);
+    }
+  } else if (type === "amulet") {
+    if (roll < 0.6) {
+      effect = "buff_success";
+      successBonus = randomInt(5, 12);
+    } else if (roll < 0.85) {
+      effect = "buff_speed";
+      speedBonus = randomInt(10, 20);
+    } else {
+      effect = "neutral";
+    }
+  } else if (type === "strange_potion") {
+    if (roll < 0.35) {
+      effect = "buff_success";
+      successBonus = randomInt(8, 18);
+    } else if (roll < 0.55) {
+      effect = "buff_speed";
+      speedBonus = randomInt(15, 30);
+    } else if (roll < 0.85) {
+      effect = "debuff";
+      successBonus = -randomInt(5, 12);
+    } else {
+      effect = "neutral";
+    }
+  }
+
+  return {
+    id: uid("item"),
+    type,
+    name: base.name,
+    emoji: base.emoji,
+    description: base.description,
+    effect,
+    hintDisease,
+    successBonus,
+    speedBonus,
+    ownerNote: rand(notes),
+  };
+}
+
 export function generateRandomBeast(day: number, time: number): Beast {
   const breed = rand(BREEDS.filter(b => b.rarity <= Math.min(5, 2 + Math.floor(day / 5))));
   const disease = rand(DISEASE_TYPES);
@@ -80,6 +148,8 @@ export function generateRandomBeast(day: number, time: number): Beast {
     satisfaction: 100,
     ownerName: rand(OWNER_NAMES),
     arrivedAt: time,
+    companionItem: generateCompanionItem(disease),
+    itemTrusted: null,
   };
 }
 
@@ -126,7 +196,7 @@ export interface GameState {
   selectBeast: (id: string | null) => void;
   selectBed: (id: string | null) => void;
   dismissBeast: (id: string) => void;
-  assignBedAndTreat: (beastId: string, bedId: string, staffId: string | null, herbIds: string[], playerDiagnosis: DiseaseType | null) => void;
+  assignBedAndTreat: (beastId: string, bedId: string, staffId: string | null, herbIds: string[], playerDiagnosis: DiseaseType | null, itemTrusted: boolean | null) => void;
   purchaseHerb: (herbId: string, qty: number) => void;
   collectFromBed: (bedId: string) => void;
   addNotification: (type: Notification["type"], message: string) => void;
@@ -256,7 +326,7 @@ export const useGameStore = create<GameState>()(
         get().addNotification("success", `采购 ${herb.name} x${qty}，花费${totalCost}金`);
       },
 
-      assignBedAndTreat: (beastId, bedId, staffId, herbIds, playerDiagnosis) => {
+      assignBedAndTreat: (beastId, bedId, staffId, herbIds, playerDiagnosis, itemTrusted) => {
         const s = get();
         const beast = s.waitingQueue.find(b => b.id === beastId);
         const bed = s.beds.find(b => b.id === bedId);
@@ -289,7 +359,14 @@ export const useGameStore = create<GameState>()(
         const staffSkillBonus = staffId ? (s.staff.find(x => x.id === staffId)?.skillLevel ?? 1) * 5 : 0;
         void staffSkillBonus;
 
-        const totalHours = calcTreatmentHours(beast.severity, hasStaff);
+        let totalHours = calcTreatmentHours(beast.severity, hasStaff);
+
+        const companionItem = beast.companionItem;
+        if (itemTrusted && companionItem) {
+          if (companionItem.effect === "buff_speed" && companionItem.speedBonus) {
+            totalHours = Math.max(2, Math.ceil(totalHours * (1 - companionItem.speedBonus / 100)));
+          }
+        }
 
         const newBeds = s.beds.map(b => b.id === bedId ? {
           ...b,
@@ -310,6 +387,8 @@ export const useGameStore = create<GameState>()(
             severity: beast.severity,
             satisfaction: beast.satisfaction,
             symptoms: beast.symptoms,
+            companionItem: beast.companionItem,
+            itemTrusted,
           },
         } : b);
 
@@ -347,9 +426,53 @@ export const useGameStore = create<GameState>()(
 
         const breed = BREEDS.find(b => b.id === (beast?.breedId || ""));
 
+        const companionItem = beast.companionItem;
+        const itemTrusted = beast.itemTrusted;
+        let satMod = 0;
+        let itemCorrect: boolean | undefined;
+
+        if (companionItem && itemTrusted !== null) {
+          if (itemTrusted) {
+            if (companionItem.effect === "clue_true") {
+              itemCorrect = bed.playerDiagnosis === beast.disease;
+              if (itemCorrect) {
+                satMod += 10;
+              }
+            } else if (companionItem.effect === "clue_false") {
+              itemCorrect = false;
+              satMod -= 15;
+            } else if (companionItem.effect === "buff_success" || companionItem.effect === "buff_speed") {
+              itemCorrect = true;
+              if (bed.result === "success") {
+                satMod += 8;
+              }
+            } else if (companionItem.effect === "debuff") {
+              itemCorrect = false;
+              if (bed.result === "fail") {
+                satMod -= 10;
+              }
+            } else if (companionItem.effect === "neutral") {
+              itemCorrect = true;
+              satMod += 3;
+            }
+          } else {
+            if (companionItem.effect === "clue_true" || companionItem.effect === "buff_success" || companionItem.effect === "buff_speed") {
+              itemCorrect = false;
+              satMod -= 5;
+            } else if (companionItem.effect === "clue_false" || companionItem.effect === "debuff") {
+              itemCorrect = true;
+              satMod += 5;
+            } else {
+              itemCorrect = true;
+            }
+          }
+        }
+
+        const finalSatisfaction = Math.max(0, Math.min(100, beast.satisfaction + satMod));
+
         if (bed.result === "success" && beast && breed) {
           const severityMult = { mild: 1, moderate: 1.4, severe: 1.8, critical: 2.3 }[beast.severity] || 1;
-          const satMult = beast.satisfaction / 100;
+          const satMult = finalSatisfaction / 100;
           const reputationBonus = s.reputation / 100;
           const revenue = Math.floor(breed.baseFees * severityMult * (0.8 + 0.4 * satMult) * (1 + reputationBonus * 0.3));
           let repGain = Math.ceil(3 * severityMult * satMult);
@@ -374,7 +497,16 @@ export const useGameStore = create<GameState>()(
           }
           void newStage;
 
-          const notes = rand(NOTES_SUCCESS);
+          let notes = rand(NOTES_SUCCESS);
+          if (companionItem && itemTrusted !== null) {
+            if (itemTrusted && itemCorrect) {
+              notes = `采信了${companionItem.name}，效果不错。` + notes;
+            } else if (itemTrusted && !itemCorrect) {
+              notes = `虽然采信的${companionItem.name}没什么用，但还是治好了。` + notes;
+            } else if (!itemTrusted && itemCorrect) {
+              notes = `明智地没有采信${companionItem.name}。` + notes;
+            }
+          }
           const days = 1;
           const daysToHeal = days;
 
@@ -392,6 +524,9 @@ export const useGameStore = create<GameState>()(
             daysToHeal,
             evolved,
             notes: evolved ? `${notes} 灵兽发生了进化！` : notes,
+            companionItemName: companionItem?.name,
+            itemTrusted: itemTrusted ?? undefined,
+            itemCorrect,
           };
 
           const newRel: BeastRelationship = {
@@ -411,13 +546,27 @@ export const useGameStore = create<GameState>()(
           get()._addTransaction("income", "诊金收入", revenue, `治愈 ${breed.name}·${beast.name}${evolved ? "(进化加成)" : ""}`);
           const evolveMsg = evolved ? " 🎉灵兽发生进化！额外获得加成！" : "";
           const diagMsg = diagnosisCorrect ? " 🔍诊断正确！" : "";
-          get().addNotification("success", `治愈成功！获得 ${revenue} 金，声望+${repGain}，亲密度+${trustGain}${diagMsg}${evolveMsg}`);
+          const itemMsg = companionItem && itemTrusted !== null
+            ? (itemCorrect ? ` 📦${companionItem.name}采信正确！` : ` ⚠️${companionItem.name}采信有误`)
+            : "";
+          get().addNotification("success", `治愈成功！获得 ${revenue} 金，声望+${repGain}，亲密度+${trustGain}${diagMsg}${itemMsg}${evolveMsg}`);
         } else if (bed.result === "fail" && beast) {
           const penaltyMoney = Math.floor(s.money * 0.05) + 20;
-          const penaltyRep = 5;
+          let penaltyRep = 5;
           const breedName = breed?.name || "灵兽";
 
-          const notes = rand(NOTES_FAIL);
+          if (companionItem && itemTrusted === true && itemCorrect === false) {
+            penaltyRep += 3;
+          }
+
+          let notes = rand(NOTES_FAIL);
+          if (companionItem && itemTrusted !== null) {
+            if (itemTrusted && !itemCorrect) {
+              notes = `误信了${companionItem.name}，导致情况更糟。` + notes;
+            } else if (!itemTrusted && itemCorrect) {
+              notes = `幸好没信那个${companionItem.name}，不然可能更糟。` + notes;
+            }
+          }
           const record: MedicalRecord = {
             id: uid("rec"),
             beastId: bedBeastId!,
@@ -432,6 +581,9 @@ export const useGameStore = create<GameState>()(
             daysToHeal: Math.max(1, Math.ceil((s.currentTime - (bed.startedAt ?? s.currentTime)) / 24) || 1),
             evolved: false,
             notes,
+            companionItemName: companionItem?.name,
+            itemTrusted: itemTrusted ?? undefined,
+            itemCorrect,
           };
 
           set(st => ({
@@ -549,7 +701,15 @@ export const useGameStore = create<GameState>()(
           const newBeds = state.beds.map(b => {
             if (b.status !== "occupied" || b.result !== "pending") return b;
             const staffBonus = b.assignedStaffId ? 1.3 : 1;
-            const newProgress = b.treatmentProgress + staffBonus;
+            let speedMult = staffBonus;
+
+            const companionItem = b.beastSnapshot?.companionItem;
+            const itemTrusted = b.beastSnapshot?.itemTrusted;
+            if (itemTrusted && companionItem?.effect === "buff_speed" && companionItem.speedBonus) {
+              speedMult *= (1 + companionItem.speedBonus / 100);
+            }
+
+            const newProgress = b.treatmentProgress + speedMult;
             let result: TreatmentResult = b.result;
             if (newProgress >= b.treatmentTotal) {
               // 判定
@@ -567,6 +727,17 @@ export const useGameStore = create<GameState>()(
               const sev = b.beastSnapshot?.severity ?? "mild";
               const sevDebuff = { mild: 0, moderate: -5, severe: -10, critical: -15 }[sev] || 0;
               finalRate = Math.max(5, Math.min(98, finalRate + sevDebuff));
+
+              // 陪诊物品效果
+              if (itemTrusted && companionItem) {
+                if (companionItem.effect === "buff_success" && companionItem.successBonus) {
+                  finalRate += companionItem.successBonus;
+                } else if (companionItem.effect === "debuff" && companionItem.successBonus) {
+                  finalRate += companionItem.successBonus;
+                }
+              }
+
+              finalRate = Math.max(5, Math.min(98, finalRate));
               result = Math.random() * 100 <= finalRate ? "success" : "fail";
             }
             return { ...b, treatmentProgress: Math.min(newProgress, b.treatmentTotal), result };

@@ -199,6 +199,30 @@ export default function ArchivePage() {
                           <div className="text-gray-500 mb-1">📝 医师手记</div>
                           <div className="text-clinic-deep italic">「{r.notes}」</div>
                         </div>
+                        {r.companionItemName && (
+                          <div className="p-2 rounded-lg bg-white/60 md:col-span-2">
+                            <div className="text-gray-500 mb-1">📦 陪诊物品</div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-clinic-deep">{r.companionItemName}</span>
+                              <span className={`tag text-[10px] ${
+                                r.itemTrusted
+                                  ? "bg-clinic-jade/15 text-clinic-jade border-clinic-jade/30"
+                                  : "bg-gray-100 text-gray-500 border-gray-200"
+                              }`}>
+                                {r.itemTrusted ? "已采信" : "未采信"}
+                              </span>
+                              {r.itemCorrect !== undefined && (
+                                <span className={`tag text-[10px] ${
+                                  r.itemCorrect
+                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                    : "bg-rose-100 text-rose-700 border-rose-200"
+                                }`}>
+                                  {r.itemCorrect ? "判断正确" : "判断失误"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

@@ -1,4 +1,4 @@
-import type { Breed, Herb, Prescription, DiseaseType, Staff } from "@/types/game";
+import type { Breed, Herb, Prescription, DiseaseType, Staff, CompanionItemType } from "@/types/game";
 
 export const DISEASE_SYMPTOMS: Record<DiseaseType, string[]> = {
   fever: ["体温偏高", "无精打采", "食欲不振", "鼻子发干", "魔力发热"],
@@ -437,4 +437,55 @@ export const NOTES_FAIL = [
   "因误诊延误了病情，主人面露愠色。",
   "只得转往大城市的高级诊所求治。",
   "灵兽对这里产生了阴影，不愿再踏入半步。",
+];
+
+export const COMPANION_ITEM_BASE: Record<CompanionItemType, { name: string; emoji: string; description: string }> = {
+  old_toy: {
+    name: "旧玩具",
+    emoji: "🧸",
+    description: "灵兽从小玩到大的旧玩具，上面沾满了它的气息。",
+  },
+  food_bowl: {
+    name: "食盆",
+    emoji: "🥣",
+    description: "灵兽日常使用的食盆，能看出它的饮食习惯。",
+  },
+  amulet: {
+    name: "护符",
+    emoji: "🔮",
+    description: "主人为灵兽求来的护符，据说有护身之效。",
+  },
+  strange_potion: {
+    name: "奇怪药瓶",
+    emoji: "🧪",
+    description: "不知从哪弄来的药水，瓶身散发着诡异的光芒。",
+  },
+};
+
+export const COMPANION_ITEM_NOTES: Record<CompanionItemType, string[]> = {
+  old_toy: [
+    "主人说：「这是它从小抱到大的玩具，睡觉时都要叼着。」",
+    "主人说：「玩具上有它的味道，能让它安心一点。」",
+    "主人说：「这是前一位主人留下的，它特别珍惜。」",
+  ],
+  food_bowl: [
+    "主人说：「它最近胃口不好，连最喜欢的灵谷都不吃了。」",
+    "主人说：「这食盆是特制的，能保持食物的灵气。」",
+    "主人说：「它以前吃饭可香了，现在却碰都不碰。」",
+  ],
+  amulet: [
+    "主人说：「这是在青云观求的平安符，肯定能保佑它。」",
+    "主人说：「带上这个护符，它就不会那么怕疼了。」",
+    "主人说：「听说道士开了光的，说不定能直接治好它。」",
+  ],
+  strange_potion: [
+    "主人说：「这是我从行脚商人那买来的神药，据说包治百病。」",
+    "主人说：「我也不知道是什么，但是闻着挺香的，它好像很想喝。」",
+    "主人说：「这是祖传的秘方，我爷爷那辈就开始用了。」",
+  ],
+};
+
+export const ITEM_CLUE_TRUE_DISEASES: DiseaseType[] = [
+  "fever", "cold", "poisoning", "fatigue", "fracture",
+  "mana_disorder", "curse", "parasite", "dehydration", "allergy",
 ];
